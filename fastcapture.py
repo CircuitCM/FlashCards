@@ -1,16 +1,15 @@
-import numpy
 from PIL import Image
 import d3dshot
 from pynput import mouse,keyboard
 from pynput.mouse import Controller, Button
-from core import gp
-import core
 import flashcard as fl
+from misc import gp
 
 
 MOUSE_POS1=(0,0)
 IS_CONTROL=False
-DISPLAY_IMG=False
+IS_ACTIVE=False
+IS_QUES=False
 
 def launch():
     global mcon,d3d
@@ -24,7 +23,7 @@ def launch():
 def key_press(key):
     try:
         n = key.__dict__.get('_name_',None)
-        global IS_CONTROL,mcon,d3d,MOUSE_POS1,DISPLAY_IMG
+        global IS_CONTROL,mcon,d3d,MOUSE_POS1,IS_ACTIVE,IS_QUES
         if n=='ctrl_l':
             IS_CONTROL=True
         if IS_CONTROL:
@@ -41,19 +40,15 @@ def key_press(key):
                     img: Image.Image = d3d.screenshot(region=bbx)
                     img=img.convert('RGB',dither=3,colors=16)
                     #fn = lambda x: 255 if x > 180 else 0
-                    pth = f'{core.CUR.cdr}img{core.CUR.imgct}.jpg'
-                    #print(pth)
+                    fl.CARD._add(img,IS_QUES)
                     #img = img.point(lambda x: 255 if x > 180 else 0, mode='1')
-                    print(img)
-                    img.save(pth,'jpeg',quality=60,optimize=True,subsampling=2)
-                    core.CUR.put_img(pth)
-                    core.CUR.imgct+=1
+                    gp(f'Image added to {"questions" if IS_QUES else "answers"}')
                 else: gp('No pdf available, image not saved.',2)
             elif n=='shift':
-                DISPLAY_IMG=not DISPLAY_IMG
-                print(f'Num get: {DISPLAY_IMG}')
+                IS_QUES= not IS_QUES
+                gp(f'Toggled {"questions" if IS_QUES else "answers"}')
     except Exception as e:
-        print(e)
+        gp(e,3)
 
 
 def key_release(key):
@@ -61,6 +56,7 @@ def key_release(key):
     global IS_CONTROL
     if n == 'ctrl_l':
         IS_CONTROL=False
+
 
 
 
