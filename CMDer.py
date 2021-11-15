@@ -144,6 +144,9 @@ def _quote_breaker(tx:str):
     return intrv
 
 
+def try_command(tx:str):
+    return _get_request(_CMD_DICT,tx)
+
 def _get_request(cmds:dict, tx:str):
     if tx=='':return None
     pts = _quote_breaker(tx)
