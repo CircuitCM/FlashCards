@@ -370,7 +370,7 @@ class App(QWidget):
     def put_img(self,imbyts:io.BytesIO):
         xy = self.display.size()
         self.display.clear()
-        w, h = xy.width(), xy.height()
+        w, h = xy.width()-4, xy.height()-4
         pm=QPixmap.fromImage(ImageQt(PIL.Image.open(imbyts)).copy())
         x, y = pm.width(), pm.height()
         r = (y / x) * (w / h)

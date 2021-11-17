@@ -47,11 +47,11 @@ def key_press(key):
                         #fn = lambda x: 255 if x > 180 else 0
                         fl.CARD._add(img,IS_QUES)
                         #img = img.point(lambda x: 255 if x > 180 else 0, mode='1')
-                        gp(f'Added image to {"questions" if IS_QUES else "answers"}')
+                        gp(f'Added image to {"questions." if IS_QUES else "answers."}')
                     else: gp('No flash card available, image not saved.',2)
                 case 'shift':
                     IS_QUES= not IS_QUES
-                    gp(f'Toggled {"questions" if IS_QUES else "answers"}')
+                    gp(f'Toggled {"questions." if IS_QUES else "answers."}')
                 case 'up':
                     if len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
                         ind = fl.save_flcard(fl.CURDR,fl.CARD)

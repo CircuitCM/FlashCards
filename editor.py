@@ -4,7 +4,7 @@ import time
 import flashcard as fl
 from flashcard import FlashCard
 import fastcapture
-from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,get_pickled_files,os
+from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,os
 from CMDer import command,start_cmdline
 from threading import Thread
 
