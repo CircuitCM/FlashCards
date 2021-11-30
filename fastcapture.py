@@ -17,6 +17,7 @@ def launch():
     mcon = Controller()
     #capture_output=1
     d3d = d3dshot.create()
+    gp(d3d.displays)
     kl = keyboard.Listener(on_press=key_press, on_release=key_release)
     kl.start()
     kl.join()

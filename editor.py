@@ -1,12 +1,12 @@
 
-import time
-
+import time as t
 import flashcard as fl
 from flashcard import FlashCard
 import fastcapture
 from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,os
 from CMDer import command,start_cmdline
 from threading import Thread
+from collections import deque
 
 
 
@@ -42,7 +42,7 @@ def del_section(all_contents=False):
 
 
 def back_section():
-    fl.CURDR=fl.CURDR[:fl.CURDR.rfind('/')+1]
+    fl.CURDR=fl.CURDR[:fl.CURDR.rfind('/',0,-1)+1]
     show_section()
 
 
@@ -80,6 +80,7 @@ def next_card():
         ind = fl.save_flcard(fl.CURDR, fl.CARD)
         fl.CARD = FlashCard()
         gp(f'Saved flashcard to index: {ind} and moved to next flashcard.')
+        update_show_perf_metrics()
     else:
         gp('Flashcard is already empty.',2)
 
@@ -131,8 +132,39 @@ def launch_memorizer():
     import subprocess
     #print(f'{sys.executable} {fl.CDIR}memorizer.py')
     subprocess.Popen(f'{sys.executable} {fl.CDIR}memorizer.py',shell=True)
-    time.sleep(.2)
+    t.sleep(.2)
     sys.exit()
+
+
+AVG_T = [t.time(),0]
+AVG_3 = deque(maxlen=4)
+AVG_3.append(AVG_T[0])
+AVG_10 = deque(maxlen=11)
+AVG_10.append(AVG_T[0])
+
+def restart_performance():
+    AVG_T[0],AVG_T[1]=t.time(),0
+    AVG_3.clear()
+    AVG_3.append(AVG_T[0])
+    AVG_10.clear()
+    AVG_10.append(AVG_T[0])
+    gp('Reset performance metrics')
+
+def update_show_perf_metrics():
+    now,CPH3,CPH10 = t.time(),0.,0.
+    AVG_3.append(now), AVG_10.append(now)
+    if len(AVG_3)>=4:
+        lt = AVG_3.popleft()
+        CPH3=3.*60.*60./(now-lt)
+    if len(AVG_10)>=11:
+        lt = AVG_10.popleft()
+        CPH10=10.*60.*60./(now-lt)
+    AVG_T[1]+=1
+    TTL = AVG_T[1]*60.*60./(now-AVG_T[0])
+    gp(f'Cards created: {AVG_T[1]}\nCPH 3 card: {int(CPH3*1000.)/1000.}\nCPH 10 card: {int(CPH10*1000.)/1000.}\nCPH total: {int(TTL*1000.)/1000.}')
+
+
+
 
 
 
@@ -156,6 +188,8 @@ if __name__ == '__main__':
     command(['show', 'answer'], (int,), 0, 1)(show_ans)
     command(['launch','memorizer'])(launch_memorizer)
     command(['show', 'directory'])(show_dir)
+    command(['restart'],)(restart_performance)
+    command(['restart', 'performance'],)(restart_performance)
     start_cmdline()
 
 

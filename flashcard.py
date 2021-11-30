@@ -73,7 +73,7 @@ def save_flcard(dr, flcrd:FlashCard):
 
 def load_flcard(dr,num:int=None):
     try:
-        with open(f'{dr}{"" if num is None else num+_PFL}','rb+') as f:
+        with open(f'{dr}{"" if num is None else str(num)+_PFL}','rb+') as f:
             fls = pickle.load(f)
         return fls
     except: return None
