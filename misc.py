@@ -49,8 +49,15 @@ def rm_dir(dir,rm_base=True,only_dirs=False):
     if rm_base:try_os_rm(dir)
     return 1 if only_dirs else 2 if fls else 1
 
-def walk_all_pickled_files(apls:list,dr):
-    pass
+def walk_all_pickled_files(dr):
+    drl=[]
+    for r, d, f in os.walk(dr,False):
+        for files in f:
+            if len(files)>2 and files[-2:]=='.p':
+                drl.append(os.path.join(r, files).replace('\\','/'))
+    return drl
+
+
 
 def try_os_rm(dr):
     try:

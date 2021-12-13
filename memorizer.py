@@ -101,9 +101,9 @@ class App(QWidget):
         command(['leave', 'sections'])(self.leave_sections)
         command(['restart', 'session'])(self.restart_session)
         command(['change', 'session'],(str,),1,1)(self.restart_session)
-        command(['addition'],(float,),1,1)
-        command(['multiple'], (float,), 1, 1)
-        command(['divisor'], (float,), 1, 1)
+        command(['addition',],(float,),1,1)
+        command(['multiple',], (float,), 1, 1)
+        command(['divisor',], (float,), 1, 1)
         command(['new', 'session'], (str,str), 1, 2)(self.new_session)
         command(['font','size'],(int,),1,1)(self.set_font)
         self.show()
@@ -124,9 +124,9 @@ class App(QWidget):
                     self.setFocus()
             case App.T:
                 self.toggle_quesans()
-            case App.UP:
-                self.display_to(1)
             case App.DOWN:
+                self.display_to(1)
+            case App.UP:
                 self.display_to(-1)
             case App.LEFT:
                 self.missed_fl()
@@ -153,7 +153,7 @@ class App(QWidget):
         self.show_section()
 
     def back_section(self):
-        fl.CURDR = fl.CURDR[:fl.CURDR.rfind('/') + 1]
+        fl.CURDR = fl.CURDR[:fl.CURDR.rfind('/',0,-1) + 1]
         self.show_section()
 
     def leave_sections(self):
@@ -237,7 +237,7 @@ class App(QWidget):
         nl = []
         dses = [fl.CURDR[fl.CURDR.rfind('/')+1:]+':',]
         if 'all' in select:
-            walk_all_pickled_files(nl,fl.CURDR)
+            nl.extend(walk_all_pickled_files(fl.CURDR))
             dses.append('all')
         else:
             if 'self' in select:
@@ -245,7 +245,7 @@ class App(QWidget):
                 self_pickled_files(nl,fl.CURDR)
                 dses.append('self')
             for i in select:
-                walk_all_pickled_files(nl,fl.CURDR+i)
+                nl.extend(walk_all_pickled_files(fl.CURDR+i))
                 dses.append(i)
         if len(nl)==0:
             gp('No cards found, no new session made.',2)
@@ -370,24 +370,29 @@ class App(QWidget):
     def put_img(self,imbyts:io.BytesIO):
         xy = self.display.size()
         self.display.clear()
-        w, h = xy.width()-4, xy.height()-4
+        w, h = xy.width()-8, xy.height()
         pm=QPixmap.fromImage(ImageQt(PIL.Image.open(imbyts)).copy())
         x, y = pm.width(), pm.height()
         r = (y / x) * (w / h)
+        #want image to fit in screen without changing screen dimensions, or img proportions
+        #if width/height image > wid/hi scrn r<1 else r>1
+        #if r<1 img width to equal scrn and height img
+        #if r>=1 want height to scale down
         if r < 1.0:
-            nh = int(h * r)
+            nh = int(h*r)
             nw = w
         else:
             nh = h
-            nw = int(w / r)
-        dw = (x - nw) // 2
-        dh = (y - nh) // 2
+            nw = int(w/r)
+        dw = (w - nw) // 2
+        dh = (h - nh) // 2
         pm = pm.scaled(nw,nh,transformMode=Qt.SmoothTransformation)
         self.display.setContentsMargins(dw, dh, dw, dh)
         self.display.setPixmap(pm)
 
     def put_txt(self,txt:str):
         self.display.clear()
+        self.display.setContentsMargins(0,0,0,0)
         self.display.setText(txt)
 
 

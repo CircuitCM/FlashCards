@@ -3,11 +3,23 @@ import time as t
 import flashcard as fl
 from flashcard import FlashCard
 import fastcapture
-from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,os
+from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,os,walk_all_pickled_files
 from CMDer import command,start_cmdline
 from threading import Thread
 from collections import deque
+from PIL.Image import Image
+import re
 
+_ds=re.compile('\d+')
+def _dirsort(k:str):
+    r=0
+    ks=k.split('/')
+    for vs,mv in zip(ks,range(len(ks),0,-1)):
+        v=_ds.findall(vs)
+        if len(v)==0: continue
+        v=int(v[0])
+        r+=v*(1000**mv)
+    return r
 
 
 def go_section(name:str,check=True):
@@ -55,7 +67,9 @@ def show_section():
     gp(f'In Section:\n*/{fl.CURDR[len(fl.CDIR):]}')
 
 def show_dir():
-    gp('\n'.join(os.listdir(fl.CURDR)))
+    ls=os.listdir(fl.CURDR)
+    ls.sort(key=_dirsort)
+    gp('\n'.join(ls))
 
 
 def toggle_fastcapture():
@@ -119,12 +133,18 @@ def rm_ans(i:int=None):
 
 def show_ques():
     for i in fl.CARD.ques:
-        gp(i)
+        if type(i)==str:
+            gp(i)
+        else:
+            gp(f'Image with length: {i.getbuffer().nbytes}')
 
 
 def show_ans():
     for i in fl.CARD.ans:
-        gp(i)
+        if type(i) == str:
+            gp(i)
+        else:
+            gp(f'Image with length: {i.getbuffer().nbytes}')
 
 
 def launch_memorizer():
@@ -132,8 +152,9 @@ def launch_memorizer():
     import subprocess
     #print(f'{sys.executable} {fl.CDIR}memorizer.py')
     subprocess.Popen(f'{sys.executable} {fl.CDIR}memorizer.py',shell=True)
-    t.sleep(.2)
-    sys.exit()
+    #t.sleep(.01)
+    import CMDer
+    CMDer._EXIT=True
 
 
 AVG_T = [t.time(),0]
@@ -164,6 +185,61 @@ def update_show_perf_metrics():
     gp(f'Cards created: {AVG_T[1]}\nCPH 3 card: {int(CPH3*1000.)/1000.}\nCPH 10 card: {int(CPH10*1000.)/1000.}\nCPH total: {int(TTL*1000.)/1000.}')
 
 
+dups= []
+origin={}
+
+def refresh_image_duplicates():
+    global dups
+    pf=walk_all_pickled_files(fl.FLDIR)
+    #gp(pf)
+    pf.sort(key=_dirsort)
+    FlashCard.DUPIMS.clear()
+    dups.clear()
+    origin.clear()
+    ubf=set()
+    for i in pf:
+        fls=fl.load_flcard(i)
+        if fls is not None:
+            for p in [*fls.ques,*fls.ans]:
+                tp=type(p)
+                if tp != str:
+                    bt=p.getbuffer().nbytes
+                    gt = FlashCard.DUPIMS.get(bt,None)
+                    if gt is None:
+                        FlashCard.DUPIMS[bt]=i
+                    elif i not in ubf:
+                        ubf.add(i)
+                        origin[gt]=True
+                        gp(f'Duplicate image(s) found in card: {i}, length: {bt}')
+                        dups.append(i)
+
+def next_fix():
+    if len(dups)==0:
+        gp('No cards to be fixed were found, try refreshing fix.')
+    elif len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
+        ind = fl.save_flcard(fl.CURDR, fl.CARD)
+        ps=dups.pop(0)
+        dri= ps[:ps.rfind('/') + 1]
+        if dri!=fl.CURDR:
+            fl.CURDR=dri
+            show_section()
+        fl.CARD = fl.load_flcard(ps)
+        gp(f'Saved last flashcard to index: {ind} and got next fix card: {ps}')
+        gp('Questions:')
+        show_ques()
+        gp('Answers:')
+        show_ans()
+        #update_show_perf_metrics()
+    else:
+        gp('Flashcard is already empty.',2)
+
+
+def show_fix():
+    gp('\n'.join(dups))
+
+
+def show_origin_ofdups():
+    gp('\n'.join(origin))
 
 
 
@@ -190,6 +266,10 @@ if __name__ == '__main__':
     command(['show', 'directory'])(show_dir)
     command(['restart'],)(restart_performance)
     command(['restart', 'performance'],)(restart_performance)
+    command(['refresh','fix'],)(refresh_image_duplicates)
+    command(['next', 'fix'])(next_fix)
+    command(['show', 'fix'])(show_fix)
+    command(['show', 'origin'])(show_origin_ofdups)
     start_cmdline()
 
 

@@ -1,6 +1,7 @@
+import re
 from typing import Union
 from PIL.Image import Image
-from misc import get_pickled_files, _PFL, try_mkdir,os
+from misc import get_pickled_files, _PFL, try_mkdir, os, walk_all_pickled_files, gp
 import pickle
 import io
 
@@ -10,6 +11,8 @@ class FlashCard(object):
 
         def __init__(self,message):
             super(FlashCard.CardError, self).__init__(message)
+
+    DUPIMS:dict={}
 
     def __init__(self):
         self.loaded_num:int = None
@@ -24,6 +27,9 @@ class FlashCard(object):
             case Image():
                 bb =io.BytesIO()
                 itm.save(bb, 'jpeg', quality=70, optimize=True, subsampling=2)
+                bl=bb.getbuffer().nbytes
+                fls=self.DUPIMS.get(bl,None)
+                if fls is not None: gp(f'Warning this image was found in: {fls}.',2)
                 ls.append(bb)
             case str():
                 ls.append(itm)
@@ -89,10 +95,39 @@ def refit_flcards(dr):
 
 
 
+
 CDIR = python_slash(__file__).rsplit('/', 1)[0]+'/'
 FLDIR = CDIR+'flashcards/'
 try_mkdir(FLDIR)
 CURDR=FLDIR
 CARD:FlashCard=FlashCard()
+
+_ds=re.compile('\d+')
+def _dirsort(k:str):
+    r=0
+    ks=k.split('/')
+    for vs,mv in zip(ks,range(len(ks),0,-1)):
+        v=_ds.findall(vs)
+        if len(v)==0: continue
+        v=int(v[0])
+        r+=v*(1000**mv)
+    return r
+
+def _load_duplicate_cards():
+    pf = walk_all_pickled_files(FLDIR)
+    # gp(pf)
+    pf.sort(key=_dirsort)
+    FlashCard.DUPIMS.clear()
+    for i in pf:
+        fls = load_flcard(i)
+        if fls is not None:
+            for p in [*fls.ques, *fls.ans]:
+                tp = type(p)
+                if tp != str:
+                    bt = p.getbuffer().nbytes
+                    if bt not in FlashCard.DUPIMS:
+                        FlashCard.DUPIMS[bt] = i
+
+_load_duplicate_cards()
 
 
