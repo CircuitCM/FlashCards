@@ -4,6 +4,7 @@ from pynput import mouse,keyboard
 from pynput.mouse import Controller, Button
 import flashcard as fl
 from misc import gp,os
+import pyperclip
 
 
 MOUSE_POS1=(0,0)
@@ -58,6 +59,10 @@ def key_press(key):
                         ind = fl.save_flcard(fl.CURDR,fl.CARD)
                         fl.CARD=fl.FlashCard()
                         gp(f'Saved flashcard to index: {ind} and moved to next flashcard.')
+                case 'space':
+                    s=pyperclip.paste()
+                    fl.CARD._add(s.replace('\r', '').replace('\n',''), IS_QUES)
+                    gp(f'Added text: "{s}" to {"questions." if IS_QUES else "answers."}')
 
     except Exception as e:
         gp(e,3)
