@@ -59,9 +59,10 @@ def key_press(key):
                         ind = fl.save_flcard(fl.CURDR,fl.CARD)
                         fl.CARD=fl.FlashCard()
                         gp(f'Saved flashcard to index: {ind} and moved to next flashcard.')
+                        fl.update_show_perf_metrics()
                 case 'space':
                     s=pyperclip.paste()
-                    fl.CARD._add(s.replace('\r', '').replace('\n',''), IS_QUES)
+                    fl.CARD._add(s.replace('\r', '').replace('\n','').replace('',''), IS_QUES)
                     gp(f'Added text: "{s}" to {"questions." if IS_QUES else "answers."}')
 
     except Exception as e:

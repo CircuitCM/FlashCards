@@ -94,7 +94,7 @@ def next_card():
         ind = fl.save_flcard(fl.CURDR, fl.CARD)
         fl.CARD = FlashCard()
         gp(f'Saved flashcard to index: {ind} and moved to next flashcard.')
-        update_show_perf_metrics()
+        fl.update_show_perf_metrics()
     else:
         gp('Flashcard is already empty.',2)
 
@@ -157,68 +157,13 @@ def launch_memorizer():
     CMDer._EXIT=True
 
 
-AVG_T = [t.time(),0]
-AVG_3 = deque(maxlen=4)
-AVG_3.append(AVG_T[0])
-AVG_10 = deque(maxlen=11)
-AVG_10.append(AVG_T[0])
-
-def restart_performance():
-    AVG_T[0],AVG_T[1]=t.time(),0
-    AVG_3.clear()
-    AVG_3.append(AVG_T[0])
-    AVG_10.clear()
-    AVG_10.append(AVG_T[0])
-    gp('Reset performance metrics')
-
-def update_show_perf_metrics():
-    now,CPH3,CPH10 = t.time(),0.,0.
-    AVG_3.append(now), AVG_10.append(now)
-    if len(AVG_3)>=4:
-        lt = AVG_3.popleft()
-        CPH3=3.*60.*60./(now-lt)
-    if len(AVG_10)>=11:
-        lt = AVG_10.popleft()
-        CPH10=10.*60.*60./(now-lt)
-    AVG_T[1]+=1
-    TTL = AVG_T[1]*60.*60./(now-AVG_T[0])
-    gp(f'Cards created: {AVG_T[1]}\nCPH 3 card: {int(CPH3*1000.)/1000.}\nCPH 10 card: {int(CPH10*1000.)/1000.}\nCPH total: {int(TTL*1000.)/1000.}')
-
-
-dups= []
-origin={}
-
-def refresh_image_duplicates():
-    global dups
-    pf=walk_all_pickled_files(fl.FLDIR)
-    #gp(pf)
-    pf.sort(key=_dirsort)
-    FlashCard.DUPIMS.clear()
-    dups.clear()
-    origin.clear()
-    ubf=set()
-    for i in pf:
-        fls=fl.load_flcard(i)
-        if fls is not None:
-            for p in [*fls.ques,*fls.ans]:
-                tp=type(p)
-                if tp != str:
-                    bt=p.getbuffer().nbytes
-                    gt = FlashCard.DUPIMS.get(bt,None)
-                    if gt is None:
-                        FlashCard.DUPIMS[bt]=i
-                    elif i not in ubf:
-                        ubf.add(i)
-                        origin[gt]=True
-                        gp(f'Duplicate image(s) found in card: {i}, length: {bt}')
-                        dups.append(i)
 
 def next_fix():
-    if len(dups)==0:
+    if len(fl.dups)==0:
         gp('No cards to be fixed were found, try refreshing fix.')
     elif len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
         ind = fl.save_flcard(fl.CURDR, fl.CARD)
-        ps=dups.pop(0)
+        ps= fl.dups.pop(0)
         dri= ps[:ps.rfind('/') + 1]
         if dri!=fl.CURDR:
             fl.CURDR=dri
@@ -235,11 +180,11 @@ def next_fix():
 
 
 def show_fix():
-    gp('\n'.join(dups))
+    gp('\n'.join(fl.dups))
 
 
 def show_origin_ofdups():
-    gp('\n'.join(origin))
+    gp('\n'.join(fl.origin))
 
 
 
@@ -264,9 +209,9 @@ if __name__ == '__main__':
     command(['show', 'answer'], (int,), 0, 1)(show_ans)
     command(['launch','memorizer'])(launch_memorizer)
     command(['show', 'directory'])(show_dir)
-    command(['restart'],)(restart_performance)
-    command(['restart', 'performance'],)(restart_performance)
-    command(['refresh','fix'],)(refresh_image_duplicates)
+    command(['restart'],)(fl.restart_performance)
+    command(['restart', 'performance'],)(fl.restart_performance)
+    command(['refresh','fix'],)(fl.refresh_image_duplicates)
     command(['next', 'fix'])(next_fix)
     command(['show', 'fix'])(show_fix)
     command(['show', 'origin'])(show_origin_ofdups)

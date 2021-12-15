@@ -4,6 +4,8 @@ from PIL.Image import Image
 from misc import get_pickled_files, _PFL, try_mkdir, os, walk_all_pickled_files, gp
 import pickle
 import io
+import time as t
+from collections import deque
 
 class FlashCard(object):
 
@@ -93,14 +95,12 @@ def refit_flcards(dr):
         os.renames(f'{dr}{n}',f'{dr}{i}{_PFL}')
 
 
-
-
-
 CDIR = python_slash(__file__).rsplit('/', 1)[0]+'/'
 FLDIR = CDIR+'flashcards/'
 try_mkdir(FLDIR)
 CURDR=FLDIR
 CARD:FlashCard=FlashCard()
+
 
 _ds=re.compile('\d+')
 def _dirsort(k:str):
@@ -113,9 +113,69 @@ def _dirsort(k:str):
         r+=v*(1000**mv)
     return r
 
+
+AVG_T = [t.time(),0]
+AVG_3 = deque(maxlen=4)
+AVG_3.append(AVG_T[0])
+AVG_10 = deque(maxlen=11)
+AVG_10.append(AVG_T[0])
+
+
+def restart_performance():
+    AVG_T[0],AVG_T[1]=t.time(),0
+    AVG_3.clear()
+    AVG_3.append(AVG_T[0])
+    AVG_10.clear()
+    AVG_10.append(AVG_T[0])
+    gp('Reset performance metrics')
+
+
+def update_show_perf_metrics():
+    now,CPH3,CPH10 = t.time(),0.,0.
+    AVG_3.append(now), AVG_10.append(now)
+    if len(AVG_3)>=4:
+        lt = AVG_3.popleft()
+        CPH3=3.*60.*60./(now-lt)
+    if len(AVG_10)>=11:
+        lt = AVG_10.popleft()
+        CPH10=10.*60.*60./(now-lt)
+    AVG_T[1]+=1
+    TTL = AVG_T[1]*60.*60./(now-AVG_T[0])
+    gp(f'Cards created: {AVG_T[1]}\nCPH 3 card: {int(CPH3*1000.)/1000.}\nCPH 10 card: {int(CPH10*1000.)/1000.}\nCPH total: {int(TTL*1000.)/1000.}')
+
+
+dups= []
+origin={}
+
+
+def refresh_image_duplicates():
+    global dups
+    pf=walk_all_pickled_files(FLDIR)
+    #gp(pf)
+    pf.sort(key=_dirsort)
+    FlashCard.DUPIMS.clear()
+    dups.clear()
+    origin.clear()
+    ubf=set()
+    for i in pf:
+        fls=load_flcard(i)
+        if fls is not None:
+            for p in [*fls.ques,*fls.ans]:
+                tp=type(p)
+                if tp != str:
+                    bt=p.getbuffer().nbytes
+                    gt = FlashCard.DUPIMS.get(bt,None)
+                    if gt is None:
+                        FlashCard.DUPIMS[bt]=i
+                    elif i not in ubf:
+                        ubf.add(i)
+                        origin[gt]=True
+                        gp(f'Duplicate image(s) found in card: {i}, length: {bt}')
+                        dups.append(i)
+
+
 def _load_duplicate_cards():
     pf = walk_all_pickled_files(FLDIR)
-    # gp(pf)
     pf.sort(key=_dirsort)
     FlashCard.DUPIMS.clear()
     for i in pf:
@@ -127,6 +187,7 @@ def _load_duplicate_cards():
                     bt = p.getbuffer().nbytes
                     if bt not in FlashCard.DUPIMS:
                         FlashCard.DUPIMS[bt] = i
+
 
 _load_duplicate_cards()
 
