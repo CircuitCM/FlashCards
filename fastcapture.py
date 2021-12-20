@@ -62,7 +62,7 @@ def key_press(key):
                         fl.update_show_perf_metrics()
                 case 'space':
                     s=pyperclip.paste()
-                    fl.CARD._add(s.replace('\r', '').replace('\n','').replace('',''), IS_QUES)
+                    fl.CARD._add(s.replace('\r', '').replace('\n','').replace(r'',''), IS_QUES)
                     gp(f'Added text: "{s}" to {"questions." if IS_QUES else "answers."}')
 
     except Exception as e:
