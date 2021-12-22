@@ -1,6 +1,6 @@
 from PIL import Image
 import d3dshot
-from pynput import mouse,keyboard
+from pynput import keyboard
 from pynput.mouse import Controller, Button
 import flashcard as fl
 from misc import gp,os
@@ -12,13 +12,16 @@ IS_CONTROL=False
 IS_ACTIVE=False
 IS_QUES=False
 
+_b=66
+
 
 def launch():
-    global mcon,d3d
+    global mcon,d3d,keyb
     mcon = Controller()
+    keyb=keyboard.Controller()
     #capture_output=1
     d3d = d3dshot.create()
-    gp(d3d.displays)
+    gp('\n'.join(repr(i) for i in d3d.displays))
     kl = keyboard.Listener(on_press=key_press, on_release=key_release)
     kl.start()
     kl.join()
@@ -28,11 +31,11 @@ def key_press(key):
     if not IS_ACTIVE: return
     try:
         n = key.__dict__.get('_name_',None)
-        global IS_CONTROL,mcon,d3d,MOUSE_POS1,IS_QUES
-        #gp(n)
-        if n=='ctrl_l':
+        global IS_CONTROL,mcon,d3d,keyb,MOUSE_POS1,IS_QUES
+        #if n is None:
+        if n=='ctrl_l' or n=='ctrl_r':
             IS_CONTROL=True
-        if IS_CONTROL:
+        elif IS_CONTROL:
             match n:
                 case 'alt_l':
                     MOUSE_POS1=mcon.position
@@ -62,8 +65,22 @@ def key_press(key):
                         fl.update_show_perf_metrics()
                 case 'space':
                     s=pyperclip.paste()
-                    fl.CARD._add(s.replace('\r', '').replace('\n','').replace(r'',''), IS_QUES)
+                    fl.CARD._add(s.replace('\r', '').replace('\n',' ').replace(r'','').replace('   ',' ').replace('  ',' '), IS_QUES)
                     gp(f'Added text: "{s}" to {"questions." if IS_QUES else "answers."}')
+                case 'right':
+                    s = pyperclip.paste().replace('\r', '').replace('\n',' ').replace(r'','').replace('   ',' ').replace('  ',' ')
+                    pyperclip.copy(s)
+                    keyb.press(keyboard.Key.ctrl_l)
+                    keyb.press('v')
+                    keyb.release('v')
+                    keyb.release(keyboard.Key.ctrl_l)
+                case 'left':
+                    keyb.press(keyboard.Key.ctrl_l)
+                    keyb.press('c')
+                    keyb.release('c')
+                    keyb.release(keyboard.Key.ctrl_l)
+
+
 
     except Exception as e:
         gp(e,3)
@@ -73,7 +90,7 @@ def key_release(key):
     if not IS_ACTIVE: return
     n = key.__dict__.get('_name_', None)
     global IS_CONTROL
-    if n == 'ctrl_l':
+    if n == 'ctrl_l' or n=='ctrl_r':
         IS_CONTROL=False
 
 

@@ -197,7 +197,7 @@ if __name__ == '__main__':
     command(['back', 'section'])(back_section)
     command(['leave', 'sections'])(leave_sections)
     command(['toggle','fastcapture'],)(toggle_fastcapture)
-    command(['delete','card'],(int,),0,1)
+    command(['delete','section'],(str,),0,1)(del_section)
     command(['next', 'card'])(next_card)
     command(['load','card'],(int,bool),1,2)(load_card)
     command(['delete','card'],(int,),0,1)(delete_card)
