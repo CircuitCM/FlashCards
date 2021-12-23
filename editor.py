@@ -186,7 +186,8 @@ def show_fix():
 def show_origin_ofdups():
     gp('\n'.join(fl.origin))
 
-
+def count_total_flcards():
+    gp(f'Total # of cards in section */{fl.CURDR[len(fl.CDIR):]}: {len(walk_all_pickled_files(fl.CURDR))}')
 
 
 if __name__ == '__main__':
@@ -215,6 +216,8 @@ if __name__ == '__main__':
     command(['next', 'fix'])(next_fix)
     command(['show', 'fix'])(show_fix)
     command(['show', 'origin'])(show_origin_ofdups)
+    command(['count'], )(count_total_flcards)
+    command(['count', 'cards'], )(count_total_flcards)
     start_cmdline()
 
 
