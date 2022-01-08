@@ -106,8 +106,8 @@ def find_cmd(cmds: list[str], cd: dict):
         #gp('cmd not recognized trying default cmd',2)
         fnc = cd.get('',None)
         if fnc is not None:
-            #gp('there is default cmd')
-            return tryfunc(cmds[1:]if cc>0 else [],fnc)
+            gp('there is default cmd')
+            return tryfunc(cmds if cc>0 and cmds[0]!='-NULL' else [],fnc)
     gp("Couldn't identify command.", 3)
 
 

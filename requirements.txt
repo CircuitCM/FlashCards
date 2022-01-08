@@ -5,3 +5,4 @@ pillow>=8.4.0
 D3DShot>=0.1.3 -c constraints.txt
 pyqt5~=5.15.6
 pyperclip~=1.8.2
+psutil~=5.9.0

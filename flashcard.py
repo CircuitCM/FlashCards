@@ -188,7 +188,24 @@ def _load_duplicate_cards():
                     if bt not in FlashCard.DUPIMS:
                         FlashCard.DUPIMS[bt] = i
 
-
 _load_duplicate_cards()
+all_imgs=[]
+
+
+def load_all_image_cards():
+    all_imgs.clear()
+    pf = walk_all_pickled_files(FLDIR)
+    pf.sort(key=_dirsort)
+    for i in pf:
+        fls = load_flcard(i)
+        if fls is not None:
+            for p in [*fls.ques, *fls.ans]:
+                tp = type(p)
+                if tp != str:
+                    all_imgs.append(i)
+                    break
+    gp('\n'.join(all_imgs))
+
+
 
 

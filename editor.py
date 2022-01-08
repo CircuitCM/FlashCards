@@ -1,15 +1,16 @@
 
-import time as t
 import flashcard as fl
 from flashcard import FlashCard
 import fastcapture
 from misc import gp, try_mkdir, rm_dir, try_os_rm,_PFL,os,walk_all_pickled_files
 from CMDer import command,start_cmdline
 from threading import Thread
-from collections import deque
-from PIL.Image import Image
+from PIL import Image
 import re
+import psutil
 
+
+#for proper sorting we assume that all cards have the same directory depth
 _ds=re.compile('\d+')
 def _dirsort(k:str):
     r=0
@@ -156,13 +157,22 @@ def launch_memorizer():
     import CMDer
     CMDer._EXIT=True
 
-
+def kill_displayed_imgs():
+    #psutil.test()
+    for proc in psutil.process_iter():
+        n=proc.name()
+        #gp(proc.cmdline())
+        if n in "display" or n in 'Microsoft.Photos.exe':
+            gp(f'Killing: {n}')
+            proc.kill()
 
 def next_fix():
     if len(fl.dups)==0:
-        gp('No cards to be fixed were found, try refreshing fix.')
-    elif len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
-        ind = fl.save_flcard(fl.CURDR, fl.CARD)
+        gp('No cards to be fixed were found, try refreshing fix.',2)
+    else:
+        ind = 'None'
+        if len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
+            ind = fl.save_flcard(fl.CURDR, fl.CARD)
         ps= fl.dups.pop(0)
         dri= ps[:ps.rfind('/') + 1]
         if dri!=fl.CURDR:
@@ -174,20 +184,110 @@ def next_fix():
         show_ques()
         gp('Answers:')
         show_ans()
-        #update_show_perf_metrics()
-    else:
-        gp('Flashcard is already empty.',2)
 
+t_imshow=False
+
+def next_withimgs():
+    if len(fl.all_imgs)==0:
+        gp('No cards with images found, try refreshing cards with images.',2)
+    else:
+        if t_imshow: kill_displayed_imgs()
+        ind='None'
+        if len(fl.CARD.ans) != 0 or len(fl.CARD.ques) != 0:
+            ind = fl.save_flcard(fl.CURDR, fl.CARD)
+        ps= fl.all_imgs.pop(0)
+        dri= ps[:ps.rfind('/') + 1]
+        if dri!=fl.CURDR:
+            fl.CURDR=dri
+            show_section()
+        fl.CARD = fl.load_flcard(ps)
+        gp(f'Saved last flashcard to index: {ind} and got next image containing card: {ps}')
+        gp('Questions:')
+        show_ques()
+        gp('Answers:')
+        show_ans()
+        if t_imshow:
+            show_all_img()
+
+def toggle_imgcardshow():
+    global t_imshow
+    t_imshow = not t_imshow
+    gp(f'Images display {"on" if t_imshow else "off"} in image card iterator.')
 
 def show_fix():
     gp('\n'.join(fl.dups))
 
+def show_cards_imgs():
+    gp('\n'.join(fl.all_imgs))
 
 def show_origin_ofdups():
     gp('\n'.join(fl.origin))
 
 def count_total_flcards():
     gp(f'Total # of cards in section */{fl.CURDR[len(fl.CDIR):]}: {len(walk_all_pickled_files(fl.CURDR))}')
+
+def show_all_img():
+    imv = 0
+    imh = 0
+    imgs = []
+    imvs = [0, ]
+    for p in [*fl.CARD.ans, *fl.CARD.ques]:
+        tf = type(p)
+        if tf != str:
+            icd = Image.open(p)
+            nim = icd.resize((int(icd.size[0] * .35), int(icd.size[1] * .35)), Image.LANCZOS)
+            sz = nim.size
+            imv += sz[1]
+            imgs.append(nim)
+            imvs.append(imv)
+            if imh < sz[0]: imh = sz[0]
+    if imv>0:
+        im = Image.new('RGB', (imh, imv), (255, 255, 255))
+        for i,v in zip(imgs,imvs):
+            im.paste(i,(0,v))
+        im.show(title=f'*/{fl.CURDR[len(fl.CDIR):]}')
+    else:
+        gp(f'No images in card: */{fl.CURDR[len(fl.CDIR):]}',2)
+
+
+def show_img_origin(pos:int,ques=False):
+    #gp('image origin called')
+    lk=fl.CARD.ques if ques else fl.CARD.ans
+    i = lk[pos-1]
+    if type(i)!=str:
+        bf = i.getbuffer()
+        bt = bf.nbytes
+        gt = FlashCard.DUPIMS.get(bt, None)
+        gp(f'Image origin: */{gt[len(fl.CDIR):]}')
+        gp(f'Image current: */{f"{fl.CURDR}{fl.CARD.loaded_num}.p"[len(fl.CDIR):]}')
+        if gt ==f'{fl.CURDR}{fl.CARD.loaded_num}.p':
+            gp('Origin image is in this card.',2)
+            return
+        if gt is not None:
+            ocd = fl.load_flcard(gt)
+            for p in [*ocd.ans, *ocd.ques]:
+                tf = type(p)
+                if tf != str:
+                    np=p
+                    of = p.getbuffer()
+                    ot = of.nbytes
+                    if ot == bt: break
+            else:
+                gp('No origin image found',2)
+                return
+            Image.open(np).show(title=gt)
+        else:
+            gp('No origin image found', 2)
+    else:
+        gp(f'{"Question" if ques else "Answer"} at index: {i}, is not an image.',2)
+
+def show_img(pos:int,ques=False):
+    lk=fl.CARD.ques if ques else fl.CARD.ans
+    i = lk[pos-1]
+    if type(i)!=str:
+        Image.open(i).show(title=fl.CURDR)
+    else:
+        gp(f'{"Question" if ques else "Answer"} at index: {i}, is not an image.',2)
 
 
 if __name__ == '__main__':
@@ -213,11 +313,21 @@ if __name__ == '__main__':
     command(['restart'],)(fl.restart_performance)
     command(['restart', 'performance'],)(fl.restart_performance)
     command(['refresh','fix'],)(fl.refresh_image_duplicates)
+    command(['refresh', 'imagecards'], )(fl.load_all_image_cards)
     command(['next', 'fix'])(next_fix)
-    command(['show', 'fix'])(show_fix)
+    command(['next', 'imagecard'])(next_withimgs)
+    command(['show','cards', 'fix'])(show_fix)
     command(['show', 'origin'])(show_origin_ofdups)
+    command(['show', 'image', 'origin'], (int, bool), 1, 2)(show_img_origin)
+    command(['show', 'image'],(int,bool),1,2)(show_img)
+    command(['show','all', 'images'],)(show_all_img)
+    command(['show', 'cards', 'images'])(show_cards_imgs)
+    command(['close', 'images'],)(kill_displayed_imgs)
+    command(['toggle', 'imagecards'], )(toggle_imgcardshow)
     command(['count'], )(count_total_flcards)
     command(['count', 'cards'], )(count_total_flcards)
+    command(['count', 'imagecards'], )(lambda : gp(f'There are {len(fl.all_imgs)} unchecked cards with images.'))
+    command(['count', 'fix'], )(lambda: gp(f'There are {len(fl.dups)} unchecked cards with possible duplicate images.'))
     start_cmdline()
 
 

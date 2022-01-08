@@ -346,7 +346,7 @@ class App(QWidget):
                 case 'elimination':
                     self.seshd.append(self.seshl.pop(self.pos))
                     if len(self.seshl)==0:
-                        gp('Elimination session finished!')
+                        gp('Elimination session completed!')
                         return
                 case 'add-div' | 'mult-div':
                     self.seshp[self.pos] = self.seshp[self.pos]/self.divt

@@ -54,7 +54,7 @@ def key_press(key):
                         #img = img.point(lambda x: 255 if x > 180 else 0, mode='1')
                         gp(f'Added image to {"questions." if IS_QUES else "answers."}')
                     else: gp('No flash card available, image not saved.',2)
-                case 'shift':
+                case 'shift'|'shift_r'|'shift_l':
                     IS_QUES= not IS_QUES
                     gp(f'Toggled {"questions." if IS_QUES else "answers."}')
                 case 'up':
