@@ -65,7 +65,7 @@ def leave_sections():
 
 
 def show_section():
-    gp(f'In Section:\n*/{fl.CURDR[len(fl.CDIR):]}')
+    gp(f'In Section:  */{fl.CURDR[len(fl.CDIR):]}')
 
 def show_dir():
     ls=os.listdir(fl.CURDR)
@@ -290,6 +290,39 @@ def show_img(pos:int,ques=False):
         gp(f'{"Question" if ques else "Answer"} at index: {i}, is not an image.',2)
 
 
+def search_cards_text(tx:str):
+    pf = walk_all_pickled_files(fl.CURDR)
+    pf.sort(key=_dirsort)
+    notfound =True
+    cds=0
+    for cp in pf:
+        fls = fl.load_flcard(cp)
+        if fls is not None:
+            for p in [*fls.ques, *fls.ans]:
+                if type(p)==str and tx.lower() in p.lower():
+                    gp(f'Found "{tx}" in card: {cp[len(fl.CDIR):]}')
+                    gp('Questions:')
+                    for i in fls.ques:
+                        if type(i) == str:gp(i)
+                        else:gp(f'Image with length: {i.getbuffer().nbytes}')
+                    gp('Answers:')
+                    for i in fls.ans:
+                        if type(i) == str:gp(i)
+                        else:gp(f'Image with length: {i.getbuffer().nbytes}')
+                    notfound=False
+                    cds+=1
+                    break
+    if notfound: gp(f'No card with "{tx}" found in section: */{fl.CURDR[len(fl.CDIR):]}',2)
+    else: gp(f'\nTotal cards found: {cds}')
+
+def total_text_search(tx:str):
+    cdr=fl.CURDR
+    fl.CURDR=fl.FLDIR
+    search_cards_text(tx)
+    fl.CURDR=cdr
+
+
+
 if __name__ == '__main__':
     Thread(target=fastcapture.launch,daemon=True).start()
     command(['show', 'section'])(show_section)
@@ -328,6 +361,8 @@ if __name__ == '__main__':
     command(['count', 'cards'], )(count_total_flcards)
     command(['count', 'imagecards'], )(lambda : gp(f'There are {len(fl.all_imgs)} unchecked cards with images.'))
     command(['count', 'fix'], )(lambda: gp(f'There are {len(fl.dups)} unchecked cards with possible duplicate images.'))
+    command(['search', 'text'],(str,),1,1,)(search_cards_text)
+    command(['search', 'total'], (str,), 1, 1, )(total_text_search)
     start_cmdline()
 
 

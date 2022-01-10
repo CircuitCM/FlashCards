@@ -22,7 +22,7 @@ def command(path: list[str]=None, argtypes:tuple=(), argmin:int=0, argmax:int=0)
         pt=path
         fn = func.__name__
         if pt is None:
-            pt = ['']
+            pt = filter(lambda x: x!='' and x!=' ',fn.split('_'))
         ipt = iter(pt)
         np:str = next(ipt,None)
         dl = _CMD_DICT
@@ -106,7 +106,8 @@ def find_cmd(cmds: list[str], cd: dict):
         #gp('cmd not recognized trying default cmd',2)
         fnc = cd.get('',None)
         if fnc is not None:
-            gp('there is default cmd')
+            #gp('there is default cmd')
+            #cc needed to protect first position check
             return tryfunc(cmds if cc>0 and cmds[0]!='-NULL' else [],fnc)
     gp("Couldn't identify command.", 3)
 
